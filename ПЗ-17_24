@@ -1,0 +1,186 @@
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+// ============================================================
+// Базовый класс: Квест
+// ============================================================
+class Quest {
+protected:
+    string name;
+    int maxParticipants;
+    string difficulty;
+    double basePrice;
+
+public:
+    Quest(string n, int maxPart, string diff, double price) {
+        name = n;
+        maxParticipants = (maxPart > 0) ? maxPart : 1;
+        difficulty = diff;
+        basePrice = (price >= 0) ? price : 0;
+    }
+
+    virtual ~Quest() {
+        cout << "Квест \"" << name << "\" удален" << endl;
+    }
+
+    string getName() { return name; }
+    int getMaxParticipants() { return maxParticipants; }
+
+    virtual double calcTeamPrice(int members) = 0;
+    virtual string getDifficultyDescription() = 0;
+    virtual void printInfo() = 0;
+};
+
+// ============================================================
+// Квест-комната
+// ============================================================
+class EscapeRoom : public Quest {
+private:
+    int roomCount;
+    bool hasActors;
+
+public:
+    EscapeRoom(string n, int maxPart, string diff, double price, int rooms, bool actors)
+        : Quest(n, maxPart, diff, price) {
+        roomCount = (rooms > 0) ? rooms : 1;
+        hasActors = actors;
+    }
+
+    double calcTeamPrice(int members) override {
+        if (members <= 0 || members > maxParticipants) return -1;
+
+        double price = basePrice + (roomCount - 1) * 500;
+        if (hasActors) price += 1000;
+        if (members < maxParticipants) price = price * 0.9;
+
+        return price;
+    }
+
+    string getDifficultyDescription() override {
+        string text = "Сложность: " + difficulty + ". ";
+        if (difficulty == "легкий") text += "Для новичков. Лучше 2-4 человека.";
+        else if (difficulty == "средний") text += "Нужна логика. Лучше 3-5 человек.";
+        else text += "Для опытных. Лучше 4-6 человек.";
+        
+        text += " Комнат: " + to_string(roomCount);
+        if (hasActors) text += ". Есть актеры.";
+        else text += ". Без актеров.";
+        
+        return text;
+    }
+
+    void printInfo() override {
+        cout << "======================================" << endl;
+        cout << "Квест: " << name << endl;
+        cout << "Тип: Escape Room" << endl;
+        cout << "Макс. участников: " << maxParticipants << endl;
+        cout << "Сложность: " << difficulty << endl;
+        cout << "Базовая цена: " << basePrice << " руб" << endl;
+        cout << "Комнат: " << roomCount << endl;
+        cout << "Актеры: " << (hasActors ? "Да" : "Нет") << endl;
+        cout << "======================================" << endl;
+    }
+};
+
+// ============================================================
+// Городской квест
+// ============================================================
+class CityQuest : public Quest {
+private:
+    int locationCount;
+    double routeDistance;
+
+public:
+    CityQuest(string n, int maxPart, string diff, double price, int locations, double distance)
+        : Quest(n, maxPart, diff, price) {
+        locationCount = (locations > 0) ? locations : 1;
+        routeDistance = (distance >= 0) ? distance : 0;
+    }
+
+    double calcTeamPrice(int members) override {
+        if (members <= 0 || members > maxParticipants) return -1;
+
+        double price = basePrice + (locationCount - 1) * 300;
+        if (routeDistance > 5) price += routeDistance * 50;
+        if (members >= 4) price = price * 0.85;
+
+        return price;
+    }
+
+    string getDifficultyDescription() override {
+        string text = "Сложность: " + difficulty + ". ";
+        if (difficulty == "легкий") text += "Для семьи. Дистанция небольшая.";
+        else if (difficulty == "средний") text += "Нужна командная работа.";
+        else text += "Для профи. Много локаций.";
+        
+        text += " Локаций: " + to_string(locationCount);
+        text += ". Маршрут: " + to_string(routeDistance) + " км.";
+        
+        return text;
+    }
+
+    void printInfo() override {
+        cout << "======================================" << endl;
+        cout << "Квест: " << name << endl;
+        cout << "Тип: Городской квест" << endl;
+        cout << "Макс. участников: " << maxParticipants << endl;
+        cout << "Сложность: " << difficulty << endl;
+        cout << "Базовая цена: " << basePrice << " руб" << endl;
+        cout << "Локаций: " << locationCount << endl;
+        cout << "Дистанция: " << routeDistance << " км" << endl;
+        cout << "======================================" << endl;
+    }
+};
+
+// ============================================================
+// Главная функция
+// ============================================================
+int main() {
+    setlocale(0, "Russian");
+
+    const int N = 4;
+    Quest* quests[N];
+
+    // Создаем квесты
+    quests[0] = new EscapeRoom("Тайна особняка", 5, "средний", 3000, 3, true);
+    quests[1] = new CityQuest("По следам истории", 8, "легкий", 2000, 4, 2.5);
+    quests[2] = new EscapeRoom("Побег из лаборатории", 6, "сложный", 4000, 4, false);
+    quests[3] = new CityQuest("Ночной детектив", 10, "средний", 3500, 6, 8.0);
+
+    // Выводим информацию
+    cout << "\n=== ВСЕ КВЕСТЫ ===\n" << endl;
+    for (int i = 0; i < N; i++) {
+        quests[i]->printInfo();
+        cout << endl;
+    }
+
+    // Считаем стоимость для команд
+    cout << "\n=== РАСЧЕТ СТОИМОСТИ ===\n" << endl;
+    
+    int teams[] = {2, 4, 5, 3};
+    
+    for (int i = 0; i < N; i++) {
+        cout << "Квест: " << quests[i]->getName() << endl;
+        cout << "Команда из " << teams[i] << " человек:" << endl;
+        
+        double price = quests[i]->calcTeamPrice(teams[i]);
+        if (price > 0) {
+            cout << "Цена: " << price << " руб" << endl;
+        } else {
+            cout << "Цена: не рассчитана (слишком много участников)" << endl;
+        }
+        
+        cout << quests[i]->getDifficultyDescription() << endl;
+        cout << "-----------------------------" << endl;
+    }
+
+    // Очищаем память
+    cout << "\n=== УДАЛЕНИЕ ===\n" << endl;
+    for (int i = 0; i < N; i++) {
+        delete quests[i];
+    }
+
+    return 0;
+}
